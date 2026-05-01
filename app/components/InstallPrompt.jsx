@@ -62,10 +62,7 @@ export default function InstallPrompt() {
       }
 
       setDeferredPrompt(null)
-      return
     }
-
-    setShowPopup(true)
   }
 
   const notNow = () => {
@@ -134,8 +131,7 @@ export default function InstallPrompt() {
               </p>
             ) : (
               <p style={{ lineHeight: 1.5 }}>
-                Add Massed from Chrome menu: tap the 3 dots, then tap “Install app”
-                or “Add to Home screen.”
+                Use Chrome menu → Install app or Add to Home screen.
               </p>
             )}
 
