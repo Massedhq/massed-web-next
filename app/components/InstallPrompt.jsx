@@ -6,16 +6,16 @@ export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [showButton, setShowButton] = useState(true)
   const [showPopup, setShowPopup] = useState(false)
-  const [isIOS, setIsIOS] = useState(false)
 
   useEffect(() => {
-    if (localStorage.getItem('massed-install-dismissed')) {
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+
+    if (isStandalone || localStorage.getItem('massed-install-dismissed')) {
       setShowButton(false)
       return
     }
-
-    const ua = window.navigator.userAgent.toLowerCase()
-    setIsIOS(/iphone|ipad|ipod/.test(ua))
 
     const handlePrompt = (e) => {
       e.preventDefault()
@@ -37,10 +37,6 @@ export default function InstallPrompt() {
     }
   }, [])
 
-  const openPopup = () => {
-    setShowPopup(true)
-  }
-
   const installNow = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt()
@@ -56,7 +52,8 @@ export default function InstallPrompt() {
       return
     }
 
-    setShowPopup(true)
+    // iPhone / fallback: browser will not allow forced install
+    setShowPopup(false)
   }
 
   const notNow = () => {
@@ -70,7 +67,7 @@ export default function InstallPrompt() {
   return (
     <>
       <button
-        onClick={openPopup}
+        onClick={() => setShowPopup(true)}
         style={{
           position: 'fixed',
           bottom: '18px',
@@ -114,39 +111,21 @@ export default function InstallPrompt() {
           >
             <h3 style={{ marginTop: 0 }}>Install Massed</h3>
 
-            {isIOS ? (
-              <p style={{ lineHeight: 1.5 }}>
-                On iPhone: open Massed in Safari, tap the Share icon, then tap
-                “Add to Home Screen.”
-              </p>
-            ) : deferredPrompt ? (
-              <p style={{ lineHeight: 1.5 }}>
-                Add Massed to your home screen for faster access.
-              </p>
-            ) : (
-              <p style={{ lineHeight: 1.5 }}>
-                Add Massed from Chrome menu: tap the 3 dots, then tap “Install app”
-                or “Add to Home screen.”
-              </p>
-            )}
-
             <div style={{ display: 'flex', gap: '10px' }}>
-              {!isIOS && deferredPrompt && (
-                <button
-                  onClick={installNow}
-                  style={{
-                    border: 'none',
-                    background: '#1f1b18',
-                    color: '#fff',
-                    padding: '11px 16px',
-                    borderRadius: '999px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Install Now
-                </button>
-              )}
+              <button
+                onClick={installNow}
+                style={{
+                  border: 'none',
+                  background: '#1f1b18',
+                  color: '#fff',
+                  padding: '11px 16px',
+                  borderRadius: '999px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Install Now
+              </button>
 
               <button
                 onClick={notNow}
