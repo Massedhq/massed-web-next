@@ -4,29 +4,51 @@ import { useEffect, useState } from 'react'
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [showButton, setShowButton] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
 
   useEffect(() => {
+    const dismissed = localStorage.getItem('massed-install-dismissed')
+    if (dismissed) return
+
     const ua = window.navigator.userAgent.toLowerCase()
-    setIsIOS(/iphone|ipad|ipod/.test(ua))
+    const ios = /iphone|ipad|ipod/.test(ua)
+    setIsIOS(ios)
+    setShowButton(true)
 
     const handlePrompt = (e) => {
       e.preventDefault()
       setDeferredPrompt(e)
+      setShowButton(true)
+    }
+
+    const handleInstalled = () => {
+      localStorage.setItem('massed-install-dismissed', 'true')
+      setShowButton(false)
+      setShowInstructions(false)
     }
 
     window.addEventListener('beforeinstallprompt', handlePrompt)
+    window.addEventListener('appinstalled', handleInstalled)
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handlePrompt)
+      window.removeEventListener('appinstalled', handleInstalled)
     }
   }, [])
 
-  const handleAdd = async () => {
+  const handleInstall = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt()
-      await deferredPrompt.userChoice
+      const choice = await deferredPrompt.userChoice
+
+      if (choice.outcome === 'accepted') {
+        localStorage.setItem('massed-install-dismissed', 'true')
+        setShowButton(false)
+        setShowInstructions(false)
+      }
+
       setDeferredPrompt(null)
       return
     }
@@ -34,10 +56,22 @@ export default function InstallPrompt() {
     setShowInstructions(true)
   }
 
+  const closeInstructions = () => {
+    setShowInstructions(false)
+  }
+
+  const dismissEverything = () => {
+    localStorage.setItem('massed-install-dismissed', 'true')
+    setShowInstructions(false)
+    setShowButton(false)
+  }
+
+  if (!showButton) return null
+
   return (
     <>
       <button
-        onClick={handleAdd}
+        onClick={handleInstall}
         style={{
           position: 'fixed',
           bottom: '18px',
@@ -53,7 +87,7 @@ export default function InstallPrompt() {
           cursor: 'pointer',
         }}
       >
-        Add Massed to Home Screen
+        Install Massed
       </button>
 
       {showInstructions && (
@@ -78,28 +112,45 @@ export default function InstallPrompt() {
               boxShadow: '0 18px 50px rgba(0,0,0,0.2)',
             }}
           >
-            <h3 style={{ marginTop: 0 }}>Add Massed to your phone</h3>
+            <h3 style={{ marginTop: 0 }}>Install Massed</h3>
 
             <p style={{ lineHeight: 1.5 }}>
               {isIOS
                 ? 'On iPhone: open Massed in Safari, tap the Share icon, then tap “Add to Home Screen.”'
-                : 'On Android: tap the 3 dots in Chrome, then tap “Install app” or “Add to Home screen.”'}
+                : 'On Android: tap Install when prompted, or use Chrome menu → Install app.'}
             </p>
 
-            <button
-              onClick={() => setShowInstructions(false)}
-              style={{
-                border: 'none',
-                background: '#1f1b18',
-                color: '#fff',
-                padding: '11px 16px',
-                borderRadius: '999px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              Got it
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={closeInstructions}
+                style={{
+                  border: 'none',
+                  background: '#1f1b18',
+                  color: '#fff',
+                  padding: '11px 16px',
+                  borderRadius: '999px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Got it
+              </button>
+
+              <button
+                onClick={dismissEverything}
+                style={{
+                  border: '1px solid #e5ded5',
+                  background: '#fff',
+                  color: '#6f6258',
+                  padding: '11px 16px',
+                  borderRadius: '999px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Not now
+              </button>
+            </div>
           </div>
         </div>
       )}
