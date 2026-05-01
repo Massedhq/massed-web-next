@@ -12,9 +12,24 @@ export default function InstallPrompt() {
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true
 
-    if (isStandalone || localStorage.getItem('massed-install-dismissed')) {
+    if (isStandalone) {
       setShowButton(false)
       return
+    }
+
+    // ⬇️ UPDATED: 11-hour return logic
+    const dismissed = localStorage.getItem('massed-install-dismissed')
+
+    if (dismissed) {
+      const lastDismissed = parseInt(dismissed)
+      const now = new Date().getTime()
+
+      const ELEVEN_HOURS = 11 * 60 * 60 * 1000
+
+      if (now - lastDismissed < ELEVEN_HOURS) {
+        setShowButton(false)
+        return
+      }
     }
 
     const handlePrompt = (e) => {
@@ -23,7 +38,7 @@ export default function InstallPrompt() {
     }
 
     const handleInstalled = () => {
-      localStorage.setItem('massed-install-dismissed', 'true')
+      localStorage.setItem('massed-install-dismissed', new Date().getTime().toString())
       setShowButton(false)
       setShowPopup(false)
     }
@@ -43,7 +58,7 @@ export default function InstallPrompt() {
       const choice = await deferredPrompt.userChoice
 
       if (choice.outcome === 'accepted') {
-        localStorage.setItem('massed-install-dismissed', 'true')
+        localStorage.setItem('massed-install-dismissed', new Date().getTime().toString())
         setShowButton(false)
         setShowPopup(false)
       }
@@ -52,12 +67,12 @@ export default function InstallPrompt() {
       return
     }
 
-    // iPhone / fallback: browser will not allow forced install
     setShowPopup(false)
   }
 
+  // ⬇️ UPDATED: store timestamp instead of "true"
   const notNow = () => {
-    localStorage.setItem('massed-install-dismissed', 'true')
+    localStorage.setItem('massed-install-dismissed', new Date().getTime().toString())
     setShowButton(false)
     setShowPopup(false)
   }
