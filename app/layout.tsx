@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import InstallPrompt from './components/InstallPrompt'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -21,7 +22,6 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
 
-        {/* iPhone support */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Massed" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -32,7 +32,6 @@ export default function RootLayout({
       </head>
 
       <body>
-        {/* Service Worker for Android install */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -45,6 +44,7 @@ export default function RootLayout({
           }}
         />
 
+        <InstallPrompt />
         {children}
       </body>
     </html>
