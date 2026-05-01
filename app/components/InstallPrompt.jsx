@@ -9,15 +9,6 @@ export default function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false)
 
   useEffect(() => {
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true
-
-    if (isStandalone) {
-      setShowButton(false)
-      return
-    }
-
     if (localStorage.getItem('massed-install-dismissed')) {
       setShowButton(false)
       return
@@ -62,7 +53,10 @@ export default function InstallPrompt() {
       }
 
       setDeferredPrompt(null)
+      return
     }
+
+    setShowPopup(true)
   }
 
   const notNow = () => {
@@ -131,7 +125,8 @@ export default function InstallPrompt() {
               </p>
             ) : (
               <p style={{ lineHeight: 1.5 }}>
-                Use Chrome menu → Install app or Add to Home screen.
+                Add Massed from Chrome menu: tap the 3 dots, then tap “Install app”
+                or “Add to Home screen.”
               </p>
             )}
 
