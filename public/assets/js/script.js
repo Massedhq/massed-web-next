@@ -1,21 +1,36 @@
 // ================================
-// SCRIPT.JS
+// SCRIPT.JS — SAFE NEXT.JS VERSION
 // ================================
 
-// ── LOGIN INPUT CLEANUP ─────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  const emailInput = document.getElementById("login-email");
-  const errorEl = document.getElementById("login-email-error");
-  if (!emailInput) return;
-  emailInput.addEventListener("input", function () {
-    this.classList.remove("error", "success");
-    errorEl.textContent = "";
-  });
-});
+const $ = (id) => document.getElementById(id)
 
-document.getElementById("login-email").addEventListener("input", () => {
-  document.getElementById("login-email-error").textContent = "";
-});
+function safeText(id, value) {
+  const el = $(id)
+  if (el) el.textContent = value
+}
+
+function safeHTML(id, value) {
+  const el = $(id)
+  if (el) el.innerHTML = value
+}
+
+function safeDisplay(id, value) {
+  const el = $(id)
+  if (el) el.style.display = value
+}
+
+// ── LOGIN INPUT CLEANUP ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const emailInput = $('login-email')
+  const errorEl = $('login-email-error')
+
+  if (emailInput && errorEl) {
+    emailInput.addEventListener('input', function () {
+      this.classList.remove('error', 'success')
+      errorEl.textContent = ''
+    })
+  }
+})
 
 // ── STATE ───────────────────────────────────────────────────
 const state = {
@@ -36,10 +51,10 @@ const state = {
   vault: [],
   suggested: [],
   following: {},
-  vaultFilter: 'All',
-};
+  vaultFilter: 'All'
+}
 
-// ── API HYDRATION ───────────────────────────────────────────
+// ── HELPERS ─────────────────────────────────────────────────
 function _initialsFromName(name) {
   return (name || '')
     .trim()
@@ -48,14 +63,15 @@ function _initialsFromName(name) {
     .map(w => w[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase();
+    .toUpperCase()
 }
 
 function _normalizeCurrentUser(me) {
-  const u = me && typeof me === 'object' ? me : {};
-  const name = u.name || u.full_name || '';
-  const username = u.username || (u.handle ? String(u.handle).replace(/^@/, '') : '');
-  const initials = u.initials || _initialsFromName(name) || (username ? username.slice(0, 2).toUpperCase() : '');
+  const u = me && typeof me === 'object' ? me : {}
+  const name = u.name || u.full_name || ''
+  const username = u.username || (u.handle ? String(u.handle).replace(/^@/, '') : '')
+  const initials = u.initials || _initialsFromName(name) || (username ? username.slice(0, 2).toUpperCase() : '')
+
   return {
     ...state.currentUser,
     ...u,
@@ -67,17 +83,22 @@ function _normalizeCurrentUser(me) {
     followers: Number(u.followers || 0),
     following: Number(u.following || 0),
     signals: Number(u.signals || 0),
-    links: Array.isArray(u.links) ? u.links : (Array.isArray(u.linkinbio_links) ? u.linkinbio_links : [])
-  };
+    links: Array.isArray(u.links)
+      ? u.links
+      : Array.isArray(u.linkinbio_links)
+        ? u.linkinbio_links
+        : []
+  }
 }
 
 function _normalizeFeedItem(p) {
-  const post = p && typeof p === 'object' ? p : {};
-  const name = post.name || post.author_name || '';
-  const handle = post.handle || (post.username ? '@' + String(post.username).replace(/^@/, '') : (post.author_handle || ''));
-  const initials = post.initials || _initialsFromName(name) || (handle ? String(handle).replace(/^@/, '').slice(0, 2).toUpperCase() : '');
+  const post = p && typeof p === 'object' ? p : {}
+  const name = post.name || post.author_name || ''
+  const handle = post.handle || (post.username ? '@' + String(post.username).replace(/^@/, '') : post.author_handle || '')
+  const initials = post.initials || _initialsFromName(name) || (handle ? String(handle).replace(/^@/, '').slice(0, 2).toUpperCase() : '')
+
   return {
-    id: post.id || ('f_' + Math.random().toString(36).slice(2)),
+    id: post.id || 'f_' + Math.random().toString(36).slice(2),
     uid: post.uid || post.user_id || post.author_id || 'u_unknown',
     name,
     handle,
@@ -90,188 +111,259 @@ function _normalizeFeedItem(p) {
     likes: Number(post.likes || 0),
     shares: Number(post.shares || 0),
     saved: Boolean(post.saved)
-  };
+  }
 }
 
+// ── API HYDRATION ───────────────────────────────────────────
 async function loadUserData() {
   try {
     const [meRes, dashRes, feedRes] = await Promise.all([
       fetch('/api/me', { credentials: 'include' }),
       fetch('/api/dashboard', { credentials: 'include' }),
       fetch('/api/feed', { credentials: 'include' })
-    ]);
+    ])
 
     const [meJson, dashJson, feedJson] = await Promise.all([
       meRes.ok ? meRes.json() : null,
       dashRes.ok ? dashRes.json() : null,
       feedRes.ok ? feedRes.json() : null
-    ]);
+    ])
 
-    if (meJson) state.currentUser = _normalizeCurrentUser(meJson);
+    if (meJson) state.currentUser = _normalizeCurrentUser(meJson)
 
     if (dashJson && typeof dashJson === 'object') {
-      if (Array.isArray(dashJson.vault)) state.vault = dashJson.vault;
-      if (Array.isArray(dashJson.suggested)) state.suggested = dashJson.suggested;
-      if (dashJson.following && typeof dashJson.following === 'object') state.following = dashJson.following;
+      if (Array.isArray(dashJson.vault)) state.vault = dashJson.vault
+      if (Array.isArray(dashJson.suggested)) state.suggested = dashJson.suggested
+      if (dashJson.following && typeof dashJson.following === 'object') state.following = dashJson.following
     }
 
-    if (Array.isArray(feedJson)) state.feed = feedJson.map(_normalizeFeedItem);
-    else if (feedJson && Array.isArray(feedJson.feed)) state.feed = feedJson.feed.map(_normalizeFeedItem);
+    if (Array.isArray(feedJson)) state.feed = feedJson.map(_normalizeFeedItem)
+    else if (feedJson && Array.isArray(feedJson.feed)) state.feed = feedJson.feed.map(_normalizeFeedItem)
 
-    if (document.getElementById('screen-app')?.classList.contains('active')) {
-      renderFeed();
-      renderSuggested();
-      if (document.querySelector('.s-nav-item.active')?.dataset?.tab === 'vault') renderVault();
-      if (document.querySelector('.s-nav-item.active')?.dataset?.tab === 'profile') renderOwnProfile();
-      if (document.querySelector('.s-nav-item.active')?.dataset?.tab === 'linkinbio') renderLibLinks();
-      if (document.querySelector('.s-nav-item.active')?.dataset?.tab === 'explore') renderExplore();
-    }
+    if ($('feed-list')) renderFeed()
+    if ($('suggested-list')) renderSuggested()
+
+    const activeTab = document.querySelector('.s-nav-item.active')?.dataset?.tab
+    if (activeTab === 'vault' && $('vault-grid')) renderVault()
+    if (activeTab === 'profile' && $('own-profile-content')) renderOwnProfile()
+    if (activeTab === 'linkinbio' && $('lib-links-list')) renderLibLinks()
+    if (activeTab === 'explore' && $('explore-list')) renderExplore()
   } catch (err) {
-    console.error('Failed to load user data:', err);
+    console.error('Failed to load user data:', err)
   }
 }
 
 // ── TOAST ───────────────────────────────────────────────────
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  const t = $('toast')
+  if (!t) return
+
+  t.textContent = msg
+  t.classList.add('show')
+
+  setTimeout(() => {
+    t.classList.remove('show')
+  }, 2200)
 }
 
 // ── MODALS ──────────────────────────────────────────────────
 function openModal(id) {
-  const modal = document.getElementById('modal-' + id);
-  if (modal) modal.style.display = 'flex';
+  safeDisplay('modal-' + id, 'flex')
 }
 
 function closeModal(id) {
-  const modal = document.getElementById('modal-' + id);
-  if (modal) modal.style.display = 'none';
+  safeDisplay('modal-' + id, 'none')
 }
 
 // ── SCREENS ─────────────────────────────────────────────────
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + id).classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+
+  const screen = $('screen-' + id)
+  if (screen) screen.classList.add('active')
 }
 
 // ── TABS ────────────────────────────────────────────────────
 function switchTab(btn) {
-  document.querySelectorAll('.s-nav-item').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const tab = btn.dataset.tab;
-  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-  document.getElementById('tab-' + tab).style.display = tab === 'feed' ? 'flex' : 'block';
-  if (tab === 'vault') renderVault();
-  if (tab === 'profile') renderOwnProfile();
-  if (tab === 'linkinbio') renderLibLinks();
-  if (tab === 'explore') renderExplore();
+  if (!btn) return
+
+  document.querySelectorAll('.s-nav-item').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+
+  const tab = btn.dataset.tab
+  if (!tab) return
+
+  document.querySelectorAll('.tab-content').forEach(t => {
+    t.style.display = 'none'
+  })
+
+  const tabEl = $('tab-' + tab)
+  if (tabEl) tabEl.style.display = tab === 'feed' ? 'flex' : 'block'
+
+  if (tab === 'vault') renderVault()
+  if (tab === 'profile') renderOwnProfile()
+  if (tab === 'linkinbio') renderLibLinks()
+  if (tab === 'explore') renderExplore()
 }
 
 // ── PROFILE SWITCHER ────────────────────────────────────────
 function toggleSwitcher() {
-  document.getElementById('profile-switcher').classList.toggle('open');
+  const switcher = $('profile-switcher')
+  if (switcher) switcher.classList.toggle('open')
 }
 
 function switchProfile(id, btn) {
+  if (!btn) return
+
   document.querySelectorAll('.ps-item').forEach(i => {
-    i.classList.remove('ps-active');
-    i.querySelector('.ps-check') && i.querySelector('.ps-check').remove();
-  });
-  btn.classList.add('ps-active');
-  const check = document.createElement('span');
-  check.className = 'ps-check';
-  check.textContent = '✓';
-  btn.appendChild(check);
-  const name = id === 'biz' ? 'Mills Studio' : 'Jordan Mills';
-  const handle = id === 'biz' ? '@millsstudio' : '@jordanmills';
-  const initials = id === 'biz' ? 'MS' : 'JM';
-  document.getElementById('sidebar-name').textContent = name;
-  document.getElementById('sidebar-handle').textContent = handle;
-  document.getElementById('sidebar-av').textContent = initials;
-  document.getElementById('profile-switcher').classList.remove('open');
-  showToast('Switched to ' + name);
+    i.classList.remove('ps-active')
+    const check = i.querySelector('.ps-check')
+    if (check) check.remove()
+  })
+
+  btn.classList.add('ps-active')
+
+  const check = document.createElement('span')
+  check.className = 'ps-check'
+  check.textContent = '✓'
+  btn.appendChild(check)
+
+  const name = id === 'biz' ? 'Mills Studio' : 'Jordan Mills'
+  const handle = id === 'biz' ? '@millsstudio' : '@jordanmills'
+  const initials = id === 'biz' ? 'MS' : 'JM'
+
+  safeText('sidebar-name', name)
+  safeText('sidebar-handle', handle)
+  safeText('sidebar-av', initials)
+
+  const switcher = $('profile-switcher')
+  if (switcher) switcher.classList.remove('open')
+
+  showToast('Switched to ' + name)
 }
 
 function signOut() {
-  localStorage.removeItem('user');
-  document.getElementById('profile-switcher').classList.remove('open');
-  showScreen('landing');
+  localStorage.removeItem('user')
+
+  const switcher = $('profile-switcher')
+  if (switcher) switcher.classList.remove('open')
+
+  showScreen('landing')
+
+  if (!$('screen-landing')) {
+    window.location.href = '/'
+  }
 }
 
+// ── SIGNUP / PASSWORD ───────────────────────────────────────
 function handleSignupAvatar(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  const img = document.getElementById('signup-av-preview');
-  img.src = url;
-  img.classList.add('loaded');
-  img.previousElementSibling.style.display = 'none';
+  const file = input?.files?.[0]
+  if (!file) return
+
+  const url = URL.createObjectURL(file)
+  const img = $('signup-av-preview')
+
+  if (img) {
+    img.src = url
+    img.classList.add('loaded')
+    if (img.previousElementSibling) img.previousElementSibling.style.display = 'none'
+  }
 }
 
 function togglePassword(inputId, btnId) {
-  const input = document.getElementById(inputId);
-  const btn = document.getElementById(btnId);
+  const input = $(inputId)
+  const btn = $(btnId)
+
+  if (!input || !btn) return
+
   if (input.type === 'password') {
-    input.type = 'text';
-    btn.textContent = '🙈';
+    input.type = 'text'
+    btn.textContent = '🙈'
   } else {
-    input.type = 'password';
-    btn.textContent = '👁';
+    input.type = 'password'
+    btn.textContent = '👁'
   }
 }
 
 function checkPasswordMatch() {
-  const p1 = document.getElementById('signup-password').value;
-  const p2 = document.getElementById('signup-confirm').value;
-  const err = document.getElementById('password-match-error');
+  const p1 = $('signup-password')?.value || ''
+  const p2 = $('signup-confirm')?.value || ''
+  const err = $('password-match-error')
+
+  if (!err) return
+
   if (p2.length > 0 && p1 !== p2) {
-    err.classList.add('show');
+    err.classList.add('show')
   } else {
-    err.classList.remove('show');
+    err.classList.remove('show')
   }
 }
 
 // ── ENTER APP ───────────────────────────────────────────────
 function enterApp() {
-  const u = state.currentUser;
-  document.getElementById('sidebar-name').textContent = u.name;
-  document.getElementById('sidebar-handle').textContent = '@' + u.username;
-  document.getElementById('sidebar-av').textContent = u.initials;
-  if (u.avatar) {
-    const av = document.getElementById('sidebar-av');
-    av.innerHTML = '<img src="' + u.avatar + '" style="width:100%;height:100%;object-fit:cover;" />';
+  const u = state.currentUser
+
+  safeText('sidebar-name', u.name)
+  safeText('sidebar-handle', '@' + u.username)
+  safeText('sidebar-av', u.initials)
+
+  const sidebarAv = $('sidebar-av')
+  if (sidebarAv && u.avatar) {
+    sidebarAv.innerHTML = '<img src="' + u.avatar + '" style="width:100%;height:100%;object-fit:cover;" />'
   }
-  document.getElementById('composer-av').textContent = u.initials;
-  if (u.avatar) document.getElementById('composer-av').innerHTML = '<img src="' + u.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />';
-  showScreen('app');
-  renderFeed();
-  renderSuggested();
-  loadUserData();
+
+  safeText('composer-av', u.initials)
+
+  const composerAv = $('composer-av')
+  if (composerAv && u.avatar) {
+    composerAv.innerHTML = '<img src="' + u.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />'
+  }
+
+  showScreen('app')
+
+  if ($('feed-list')) renderFeed()
+  if ($('suggested-list')) renderSuggested()
+
+  loadUserData()
 }
 
 // ── POST TYPE ───────────────────────────────────────────────
 function setPostType(type, btn) {
-  state.postType = type;
-  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  const ta = document.getElementById('compose-text');
-  ta.placeholder = type === 'signal' ? 'Share a signal — a thought, quote, or insight…' : 'Write a post…';
-  document.getElementById('post-btn').textContent = type === 'signal' ? 'Send signal' : 'Publish';
+  state.postType = type
+
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('active'))
+  if (btn) btn.classList.add('active')
+
+  const ta = $('compose-text')
+  if (ta) {
+    ta.placeholder = type === 'signal'
+      ? 'Share a signal — a thought, quote, or insight…'
+      : 'Write a post…'
+  }
+
+  safeText('post-btn', type === 'signal' ? 'Send signal' : 'Publish')
 }
 
 function updateCharCount(ta) {
-  const remaining = 280 - ta.value.length;
-  const cc = document.getElementById('char-count');
-  cc.textContent = remaining;
-  cc.style.color = remaining < 30 ? '#c0392b' : 'var(--g400)';
-  document.getElementById('post-btn').disabled = ta.value.trim().length === 0;
+  if (!ta) return
+
+  const remaining = 280 - ta.value.length
+  const cc = $('char-count')
+  const postBtn = $('post-btn')
+
+  if (cc) {
+    cc.textContent = remaining
+    cc.style.color = remaining < 30 ? '#c0392b' : 'var(--g400)'
+  }
+
+  if (postBtn) postBtn.disabled = ta.value.trim().length === 0
 }
 
 // ── FEED ────────────────────────────────────────────────────
 function renderFeed() {
-  const list = document.getElementById('feed-list');
+  const list = $('feed-list')
+  if (!list) return
+
   list.innerHTML = state.feed.map(p => `
     <div class="signal-card" id="card-${p.id}">
       <div class="sc-header">
@@ -292,60 +384,101 @@ function renderFeed() {
         <button class="sc-action ${p.saved ? 'saved' : ''}" id="save-${p.id}" onclick="toggleSave('${p.id}')">${p.saved ? '🔒' : '🔓'} ${p.saved ? 'Saved' : 'Save'}</button>
       </div>
     </div>
-  `).join('');
+  `).join('')
 }
 
 function submitPost() {
-  const text = document.getElementById('compose-text').value.trim();
-  if (!text) return;
-  const u = state.currentUser;
+  const text = $('compose-text')?.value?.trim()
+  if (!text) return
+
+  const u = state.currentUser
+
   const newPost = {
-    id: 'f_' + Date.now(), uid: 'u_me', name: u.name, handle: '@' + u.username,
-    initials: u.initials, color: '#C07850', type: state.postType, time: 'just now',
-    body: text, liked: false, likes: 0, shares: 0, saved: false
-  };
-  state.feed.unshift(newPost);
-  document.getElementById('compose-text').value = '';
-  document.getElementById('char-count').textContent = '280';
-  document.getElementById('post-btn').disabled = true;
-  renderFeed();
-  showToast(state.postType === 'signal' ? 'Signal posted ⚡' : 'Post published ✓');
+    id: 'f_' + Date.now(),
+    uid: 'u_me',
+    name: u.name,
+    handle: '@' + u.username,
+    initials: u.initials,
+    color: '#C07850',
+    type: state.postType,
+    time: 'just now',
+    body: text,
+    liked: false,
+    likes: 0,
+    shares: 0,
+    saved: false
+  }
+
+  state.feed.unshift(newPost)
+
+  const compose = $('compose-text')
+  if (compose) compose.value = ''
+
+  safeText('char-count', '280')
+
+  const postBtn = $('post-btn')
+  if (postBtn) postBtn.disabled = true
+
+  renderFeed()
+  showToast(state.postType === 'signal' ? 'Signal posted ⚡' : 'Post published ✓')
 }
 
 function toggleLike(id) {
-  const p = state.feed.find(f => f.id === id);
-  if (!p) return;
-  p.liked = !p.liked;
-  p.likes += p.liked ? 1 : -1;
-  const btn = document.getElementById('like-' + id);
-  btn.className = 'sc-action' + (p.liked ? ' liked' : '');
-  btn.textContent = (p.liked ? '♥' : '♡') + ' ' + p.likes;
+  const p = state.feed.find(f => f.id === id)
+  if (!p) return
+
+  p.liked = !p.liked
+  p.likes += p.liked ? 1 : -1
+
+  const btn = $('like-' + id)
+  if (!btn) return
+
+  btn.className = 'sc-action' + (p.liked ? ' liked' : '')
+  btn.textContent = (p.liked ? '♥' : '♡') + ' ' + p.likes
 }
 
 function toggleSave(id) {
-  const p = state.feed.find(f => f.id === id);
-  if (!p) return;
-  p.saved = !p.saved;
-  const btn = document.getElementById('save-' + id);
-  btn.className = 'sc-action' + (p.saved ? ' saved' : '');
-  btn.textContent = (p.saved ? '🔒' : '🔓') + ' ' + (p.saved ? 'Saved' : 'Save');
-  if (p.saved) {
-    state.vault.unshift({ id: 'v_' + Date.now(), type: p.type === 'signal' ? 'Signal' : 'Post', title: p.body.slice(0, 60) + '…', date: 'Today' });
+  const p = state.feed.find(f => f.id === id)
+  if (!p) return
+
+  p.saved = !p.saved
+
+  const btn = $('save-' + id)
+  if (btn) {
+    btn.className = 'sc-action' + (p.saved ? ' saved' : '')
+    btn.textContent = (p.saved ? '🔒' : '🔓') + ' ' + (p.saved ? 'Saved' : 'Save')
   }
-  showToast(p.saved ? 'Saved to vault 🔒' : 'Removed from vault');
+
+  if (p.saved) {
+    state.vault.unshift({
+      id: 'v_' + Date.now(),
+      type: p.type === 'signal' ? 'Signal' : 'Post',
+      title: p.body.slice(0, 60) + '…',
+      date: 'Today'
+    })
+  }
+
+  showToast(p.saved ? 'Saved to vault 🔒' : 'Removed from vault')
 }
 
 function handleShare(id) {
-  const p = state.feed.find(f => f.id === id);
-  if (!p) return;
-  p.shares++;
-  document.querySelector(`#card-${id} .sc-actions button:nth-child(2)`).textContent = '↗ ' + p.shares;
-  showToast('Link copied ✓');
+  const p = state.feed.find(f => f.id === id)
+  if (!p) return
+
+  p.shares++
+
+  const btn = document.querySelector(`#card-${id} .sc-actions button:nth-child(2)`)
+  if (btn) btn.textContent = '↗ ' + p.shares
+
+  showToast('Link copied ✓')
 }
 
 // ── SUGGESTED ───────────────────────────────────────────────
 function renderSuggested() {
-  document.getElementById('suggested-list').innerHTML = state.suggested.slice(0, 4).map(u => `
+  const list = $('suggested-list')
+  if (!list) return
+
+  list.innerHTML = state.suggested.slice(0, 4).map(u => `
     <div class="sug-row">
       <div class="sug-av" style="background:${u.color}22;color:${u.color};" onclick="viewProfile('${u.id}')">${u.initials}</div>
       <div style="flex:1;min-width:0;cursor:pointer;" onclick="viewProfile('${u.id}')">
@@ -354,33 +487,55 @@ function renderSuggested() {
       </div>
       <button class="sug-follow ${state.following[u.id] ? 'following' : ''}" onclick="toggleFollow('${u.id}',this)">${state.following[u.id] ? '✓' : 'Follow'}</button>
     </div>
-  `).join('');
+  `).join('')
 }
 
 function toggleFollow(id, btn) {
-  state.following[id] = !state.following[id];
-  btn.className = 'sug-follow' + (state.following[id] ? ' following' : '');
-  btn.textContent = state.following[id] ? '✓' : 'Follow';
+  state.following[id] = !state.following[id]
+
+  if (!btn) return
+
+  btn.className = 'sug-follow' + (state.following[id] ? ' following' : '')
+  btn.textContent = state.following[id] ? '✓' : 'Follow'
 }
 
 // ── PROFILE ─────────────────────────────────────────────────
 function renderOwnProfile() {
-  const u = state.currentUser;
-  const el = document.getElementById('own-profile-content');
-  el.innerHTML = profileHTML(u, true);
-  activateProfileTabs(el, u, true);
+  const u = state.currentUser
+  const el = $('own-profile-content')
+  if (!el) return
+
+  el.innerHTML = profileHTML(u, true)
+  activateProfileTabs(el, u, true)
 }
 
 function viewProfile(uid) {
-  const u = uid === 'u_me' ? state.currentUser : state.suggested.find(s => s.id === uid);
-  if (!u) return;
-  const fullU = uid === 'u_me' ? state.currentUser : { ...u, following: 148, followers: 1200, signals: 44, links: [] };
-  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-  const tab = document.getElementById('tab-viewprofile');
-  tab.style.display = 'block';
-  tab.querySelector('#view-profile-content').innerHTML = profileHTML(fullU, uid === 'u_me');
-  activateProfileTabs(tab.querySelector('#view-profile-content'), fullU, uid === 'u_me');
-  document.querySelectorAll('.s-nav-item').forEach(b => b.classList.remove('active'));
+  const u = uid === 'u_me'
+    ? state.currentUser
+    : state.suggested.find(s => s.id === uid)
+
+  if (!u) return
+
+  const fullU = uid === 'u_me'
+    ? state.currentUser
+    : { ...u, following: 148, followers: 1200, signals: 44, links: [] }
+
+  document.querySelectorAll('.tab-content').forEach(t => {
+    t.style.display = 'none'
+  })
+
+  const tab = $('tab-viewprofile')
+  if (!tab) return
+
+  tab.style.display = 'block'
+
+  const content = tab.querySelector('#view-profile-content')
+  if (content) {
+    content.innerHTML = profileHTML(fullU, uid === 'u_me')
+    activateProfileTabs(content, fullU, uid === 'u_me')
+  }
+
+  document.querySelectorAll('.s-nav-item').forEach(b => b.classList.remove('active'))
 }
 
 function profileHTML(u, isOwn) {
@@ -405,100 +560,140 @@ function profileHTML(u, isOwn) {
       <span><span class="p-stat-num">${(u.followers || 2309).toLocaleString()}</span><span class="p-stat-label">followers</span></span>
       <span><span class="p-stat-num">${u.following || 148}</span><span class="p-stat-label">following</span></span>
     </div>
-    ${u.links && u.links.length ? `<div class="p-links">${u.links.map(l => `<button class="p-link"><span style="font-size:12px;">${l.icon}</span>${l.label}</button>`).join('')}</div>` : ''}
-    <div class="p-tabs">
-      <button class="p-tab active" onclick="switchProfileTab('signals',this)">Signals</button>
-      <button class="p-tab" onclick="switchProfileTab('posts',this)">Posts</button>
-      <button class="p-tab" onclick="switchProfileTab('vault',this)">Vault</button>
-    </div>
-    <div id="ptab-signals" class="p-tab-content active">${state.feed.filter(p => p.type === 'signal').map(p => `<div class="signal-card" style="cursor:default;"><div class="sc-body" style="margin-bottom:0;">${p.body}</div><div class="sc-actions" style="margin-top:12px;"><button class="sc-action">♡ ${p.likes}</button><button class="sc-action">↗ ${p.shares}</button></div></div>`).join('')}</div>
-    <div id="ptab-posts" class="p-tab-content" style="display:none;">${state.feed.filter(p => p.type === 'post').map(p => `<div class="signal-card" style="cursor:default;"><div class="sc-body" style="margin-bottom:0;">${p.body}</div><div class="sc-actions" style="margin-top:12px;"><button class="sc-action">♡ ${p.likes}</button><button class="sc-action">↗ ${p.shares}</button></div></div>`).join('')}</div>
-    <div id="ptab-vault" class="p-tab-content" style="display:none;">${isOwn ? `<div class="vault-grid">${state.vault.map(v => `<div class="vault-card"><div class="vault-type">${v.type}</div><div class="vault-title">${v.title}</div><div class="vault-date">${v.date}</div></div>`).join('')}</div>` : '<div style="text-align:center;padding:44px 0;color:var(--g400);font-size:14px;">🔒 Vault is private</div>'}</div>
-  `;
+  `
 }
 
 function switchProfileTab(name, btn) {
-  btn.closest('.main-wide').querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-  btn.closest('.main-wide').querySelectorAll('.p-tab-content').forEach(t => t.style.display = 'none');
-  btn.closest('.main-wide').querySelector('#ptab-' + name).style.display = 'block';
+  const parent = btn?.closest('.main-wide')
+  if (!parent) return
+
+  parent.querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'))
+  btn.classList.add('active')
+
+  parent.querySelectorAll('.p-tab-content').forEach(t => {
+    t.style.display = 'none'
+  })
+
+  const tab = parent.querySelector('#ptab-' + name)
+  if (tab) tab.style.display = 'block'
 }
 
 function activateProfileTabs(el, u, isOwn) {}
 
 function toggleProfileFollow(btn) {
-  const isFollowing = btn.classList.contains('following');
-  btn.classList.toggle('following', !isFollowing);
-  btn.classList.toggle('primary', isFollowing);
-  btn.textContent = isFollowing ? 'Follow' : 'Following ✓';
+  if (!btn) return
+
+  const isFollowing = btn.classList.contains('following')
+
+  btn.classList.toggle('following', !isFollowing)
+  btn.classList.toggle('primary', isFollowing)
+  btn.textContent = isFollowing ? 'Follow' : 'Following ✓'
 }
 
 // ── VAULT ───────────────────────────────────────────────────
 function renderVault() {
-  const items = state.vaultFilter === 'All' ? state.vault : state.vault.filter(v => v.type === state.vaultFilter);
-  document.getElementById('vault-grid').innerHTML = items.map(v => `
+  const grid = $('vault-grid')
+  if (!grid) return
+
+  const items = state.vaultFilter === 'All'
+    ? state.vault
+    : state.vault.filter(v => v.type === state.vaultFilter)
+
+  grid.innerHTML = items.map(v => `
     <div class="vault-card">
       <div class="vault-type">${v.type}</div>
       <div class="vault-title">${v.title}</div>
       <div class="vault-date">${v.date}</div>
     </div>
-  `).join('');
+  `).join('')
 }
 
 function filterVault(f, btn) {
-  state.vaultFilter = f;
-  document.querySelectorAll('#vault-filters .type-pill').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  renderVault();
+  state.vaultFilter = f
+
+  document.querySelectorAll('#vault-filters .type-pill').forEach(p => p.classList.remove('active'))
+  if (btn) btn.classList.add('active')
+
+  renderVault()
 }
 
 // ── LINK IN BIO ─────────────────────────────────────────────
 function renderLibLinks() {
-  const u = state.currentUser;
-  document.getElementById('lib-name').textContent = u.name;
-  document.getElementById('lib-bio').textContent = u.bio;
-  if (u.avatar) document.getElementById('lib-av').innerHTML = '<img src="' + u.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />';
-  else document.getElementById('lib-av').textContent = u.initials;
-  document.getElementById('lib-links-list').innerHTML = u.links.map((l, i) => `
-    <div class="lib-link-item">
-      <span style="font-size:15px;">${l.icon}</span>
-      <span style="flex:1;margin-left:9px;">${l.label}</span>
-      <span style="font-size:13px;color:var(--g400);">→</span>
-    </div>
-  `).join('');
-  renderLibEditLinks();
+  const u = state.currentUser
+
+  safeText('lib-name', u.name)
+  safeText('lib-bio', u.bio)
+
+  const av = $('lib-av')
+  if (av) {
+    if (u.avatar) {
+      av.innerHTML = '<img src="' + u.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />'
+    } else {
+      av.textContent = u.initials
+    }
+  }
+
+  const list = $('lib-links-list')
+  if (list) {
+    list.innerHTML = u.links.map((l) => `
+      <div class="lib-link-item">
+        <span style="font-size:15px;">${l.icon}</span>
+        <span style="flex:1;margin-left:9px;">${l.label}</span>
+        <span style="font-size:13px;color:var(--g400);">→</span>
+      </div>
+    `).join('')
+  }
+
+  renderLibEditLinks()
 }
 
 function renderLibEditLinks() {
-  document.getElementById('lib-edit-links').innerHTML = state.currentUser.links.map((l, i) => `
+  const edit = $('lib-edit-links')
+  if (!edit) return
+
+  edit.innerHTML = state.currentUser.links.map((l, i) => `
     <div style="display:flex;gap:7px;margin-bottom:8px;">
       <input class="form-input" style="flex:1;" value="${l.label}" onchange="state.currentUser.links[${i}].label=this.value;renderLibLinks();" />
       <button onclick="state.currentUser.links.splice(${i},1);renderLibLinks();" style="background:none;border:none;cursor:pointer;font-size:17px;color:var(--g400);padding:0 4px;">×</button>
     </div>
-  `).join('');
+  `).join('')
 }
 
-let libEditing = false;
+let libEditing = false
+
 function toggleLibEdit() {
-  libEditing = !libEditing;
-  document.getElementById('lib-edit-panel').style.display = libEditing ? 'block' : 'none';
-  document.getElementById('lib-edit-btn').textContent = libEditing ? 'Done' : 'Edit links';
+  libEditing = !libEditing
+
+  safeDisplay('lib-edit-panel', libEditing ? 'block' : 'none')
+  safeText('lib-edit-btn', libEditing ? 'Done' : 'Edit links')
 }
 
 function addLibLink() {
-  const input = document.getElementById('lib-new-label');
-  if (!input.value.trim()) return;
-  state.currentUser.links.push({ label: input.value.trim(), icon: '🔗' });
-  input.value = '';
-  renderLibLinks();
+  const input = $('lib-new-label')
+  if (!input || !input.value.trim()) return
+
+  state.currentUser.links.push({
+    label: input.value.trim(),
+    icon: '🔗'
+  })
+
+  input.value = ''
+  renderLibLinks()
 }
 
 // ── EXPLORE ─────────────────────────────────────────────────
 function renderExplore(query = '') {
+  const list = $('explore-list')
+  if (!list) return
+
   const results = query
-    ? state.suggested.filter(u => u.name.toLowerCase().includes(query.toLowerCase()) || u.handle.includes(query.toLowerCase()))
-    : state.suggested;
-  document.getElementById('explore-list').innerHTML = results.map(u => `
+    ? state.suggested.filter(u =>
+        u.name.toLowerCase().includes(query.toLowerCase()) ||
+        u.handle.includes(query.toLowerCase())
+      )
+    : state.suggested
+
+  list.innerHTML = results.map(u => `
     <div class="ex-row">
       <div style="width:44px;height:44px;border-radius:50%;background:${u.color}22;color:${u.color};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0;" onclick="viewProfile('${u.id}')">${u.initials}</div>
       <div style="flex:1;min-width:0;cursor:pointer;" onclick="viewProfile('${u.id}')">
@@ -508,82 +703,141 @@ function renderExplore(query = '') {
       </div>
       <button class="follow-btn ${state.following[u.id] ? 'following' : ''}" onclick="toggleFollowExplore('${u.id}',this)">${state.following[u.id] ? 'Following ✓' : 'Follow'}</button>
     </div>
-  `).join('');
+  `).join('')
 }
 
-function filterExplore(q) { renderExplore(q); }
+function filterExplore(q) {
+  renderExplore(q)
+}
 
 function toggleFollowExplore(id, btn) {
-  state.following[id] = !state.following[id];
-  btn.className = 'follow-btn' + (state.following[id] ? ' following' : '');
-  btn.textContent = state.following[id] ? 'Following ✓' : 'Follow';
+  state.following[id] = !state.following[id]
+
+  if (!btn) return
+
+  btn.className = 'follow-btn' + (state.following[id] ? ' following' : '')
+  btn.textContent = state.following[id] ? 'Following ✓' : 'Follow'
 }
 
 // ── SETTINGS ────────────────────────────────────────────────
 function handleSettingsAvatar(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  state.currentUser.avatar = url;
-  const img = document.getElementById('settings-av-img');
-  img.src = url;
-  img.classList.add('loaded');
-  document.getElementById('settings-av-initials').style.display = 'none';
-  document.getElementById('remove-av-btn').style.display = 'inline-flex';
+  const file = input?.files?.[0]
+  if (!file) return
+
+  const url = URL.createObjectURL(file)
+  state.currentUser.avatar = url
+
+  const img = $('settings-av-img')
+  if (img) {
+    img.src = url
+    img.classList.add('loaded')
+  }
+
+  safeDisplay('settings-av-initials', 'none')
+  safeDisplay('remove-av-btn', 'inline-flex')
 }
 
 function removeAvatar() {
-  state.currentUser.avatar = null;
-  const img = document.getElementById('settings-av-img');
-  img.src = '';
-  img.classList.remove('loaded');
-  document.getElementById('settings-av-initials').style.display = 'block';
-  document.getElementById('remove-av-btn').style.display = 'none';
+  state.currentUser.avatar = null
+
+  const img = $('settings-av-img')
+  if (img) {
+    img.src = ''
+    img.classList.remove('loaded')
+  }
+
+  safeDisplay('settings-av-initials', 'block')
+  safeDisplay('remove-av-btn', 'none')
 }
 
 function saveSettings() {
-  state.currentUser.name = document.getElementById('settings-name').value;
-  state.currentUser.username = document.getElementById('settings-username').value;
-  state.currentUser.bio = document.getElementById('settings-bio').value;
-  const u = state.currentUser;
-  document.getElementById('sidebar-name').textContent = u.name;
-  document.getElementById('sidebar-handle').textContent = '@' + u.username;
-  showToast('Profile saved ✓');
+  const name = $('settings-name')
+  const username = $('settings-username')
+  const bio = $('settings-bio')
+
+  if (name) state.currentUser.name = name.value
+  if (username) state.currentUser.username = username.value
+  if (bio) state.currentUser.bio = bio.value
+
+  safeText('sidebar-name', state.currentUser.name)
+  safeText('sidebar-handle', '@' + state.currentUser.username)
+
+  showToast('Profile saved ✓')
 }
 
 // ── CLICK OUTSIDE SWITCHER ───────────────────────────────────
 document.addEventListener('click', function (e) {
-  const switcher = document.getElementById('profile-switcher');
-  if (switcher.classList.contains('open') && !switcher.contains(e.target) && !e.target.closest('.s-profile-btn')) {
-    switcher.classList.remove('open');
+  const switcher = $('profile-switcher')
+
+  if (!switcher) return
+
+  if (
+    switcher.classList.contains('open') &&
+    !switcher.contains(e.target) &&
+    !e.target.closest('.s-profile-btn')
+  ) {
+    switcher.classList.remove('open')
   }
-});
+})
 
 // ── AUTO-LOGIN FROM URL PARAM ────────────────────────────────
-(function () {
-  const urlParams = new URLSearchParams(window.location.search);
-  const userParam = urlParams.get('user');
+;(function () {
+  const urlParams = new URLSearchParams(window.location.search)
+  const userParam = urlParams.get('user')
+
   if (userParam) {
     try {
-      const user = JSON.parse(decodeURIComponent(userParam));
-      localStorage.setItem('user', JSON.stringify(user));
-      state.currentUser = _normalizeCurrentUser(user);
-      enterApp();
-      window.history.replaceState({}, '', '/');
+      const user = JSON.parse(decodeURIComponent(userParam))
+      localStorage.setItem('user', JSON.stringify(user))
+      state.currentUser = _normalizeCurrentUser(user)
+      enterApp()
+      window.history.replaceState({}, '', '/')
     } catch (e) {
-      console.error('Failed to parse user from URL:', e);
+      console.error('Failed to parse user from URL:', e)
     }
   } else {
-    // Check localStorage for existing session
-    const stored = localStorage.getItem('user');
+    const stored = localStorage.getItem('user')
+
     if (stored) {
       try {
-        const user = JSON.parse(stored);
-        state.currentUser = _normalizeCurrentUser(user);
-        enterApp();
+        const user = JSON.parse(stored)
+        state.currentUser = _normalizeCurrentUser(user)
+        enterApp()
       } catch (e) {
-        localStorage.removeItem('user');
+        localStorage.removeItem('user')
       }
     }
   }
-})();
+})()
+
+// ── EXPOSE FUNCTIONS FOR OLD INLINE HTML HANDLERS ────────────
+window.showToast = showToast
+window.openModal = openModal
+window.closeModal = closeModal
+window.showScreen = showScreen
+window.switchTab = switchTab
+window.toggleSwitcher = toggleSwitcher
+window.switchProfile = switchProfile
+window.signOut = signOut
+window.handleSignupAvatar = handleSignupAvatar
+window.togglePassword = togglePassword
+window.checkPasswordMatch = checkPasswordMatch
+window.enterApp = enterApp
+window.setPostType = setPostType
+window.updateCharCount = updateCharCount
+window.submitPost = submitPost
+window.toggleLike = toggleLike
+window.toggleSave = toggleSave
+window.handleShare = handleShare
+window.toggleFollow = toggleFollow
+window.viewProfile = viewProfile
+window.switchProfileTab = switchProfileTab
+window.toggleProfileFollow = toggleProfileFollow
+window.filterVault = filterVault
+window.toggleLibEdit = toggleLibEdit
+window.addLibLink = addLibLink
+window.filterExplore = filterExplore
+window.toggleFollowExplore = toggleFollowExplore
+window.handleSettingsAvatar = handleSettingsAvatar
+window.removeAvatar = removeAvatar
+window.saveSettings = saveSettings
