@@ -5,248 +5,271 @@ import { useState } from 'react'
 export default function Dashboard() {
   const [active, setActive] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [goLiveOpen, setGoLiveOpen] = useState(false)
+  const [liveMode, setLiveMode] = useState('')
 
   const nav = (screen) => {
     setActive(screen)
     setSidebarOpen(false)
+    setMenuOpen(false)
   }
 
   const logout = () => {
-    if (typeof window !== 'undefined' && window.signOut) {
-      window.signOut()
-      return
-    }
-
     localStorage.removeItem('user')
     window.location.href = '/'
   }
 
+  const openGoLive = () => {
+    setLiveMode('')
+    setMenuOpen(false)
+    setGoLiveOpen(true)
+  }
+
+  const sell = () => {
+    nav('mystore')
+  }
+
+  const continueGoLive = () => {
+    if (!liveMode) return
+
+    setGoLiveOpen(false)
+
+    if (liveMode === 'sell') {
+      nav('mystore')
+      return
+    }
+
+    if (liveMode === 'poll') {
+      nav('createpoll')
+      return
+    }
+
+    nav('livepreview')
+  }
+
   return (
     <>
-      <div
-        className="sidebar-overlay"
-        id="sidebar-overlay"
-        onClick={() => setSidebarOpen(false)}
-        style={{ display: sidebarOpen ? 'block' : undefined }}
-      />
+      {(sidebarOpen || menuOpen) && (
+        <div
+          className="sidebar-overlay active"
+          onClick={() => {
+            setSidebarOpen(false)
+            setMenuOpen(false)
+          }}
+        />
+      )}
 
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} id="main-sidebar">
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
           <span className="logo-icon">M</span>
           <span className="logo-name">Massed</span>
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-group-header">
-            <span>Main</span>
-          </div>
-
-          <div className="nav-group-body">
-            <div className={`nav-item ${active === 'dashboard' ? 'active' : ''}`} onClick={() => nav('dashboard')}>
-              Dashboard
-            </div>
-
-            <div className={`nav-item ${active === 'showcase' ? 'active' : ''}`} onClick={() => nav('showcase')}>
-              Showcase
-            </div>
-
-            <div className={`nav-item ${active === 'mystore' ? 'active' : ''}`} onClick={() => nav('mystore')}>
-              My Store
-            </div>
-
-            <div className={`nav-item ${active === 'digital' ? 'active' : ''}`} onClick={() => nav('digital')} style={{ paddingLeft: '36px', fontSize: '0.82rem' }}>
-              Digital Products
-            </div>
-
-            <div className={`nav-item ${active === 'physical' ? 'active' : ''}`} onClick={() => nav('physical')} style={{ paddingLeft: '36px', fontSize: '0.82rem' }}>
-              Physical Products
-            </div>
-
-            <div className={`nav-item ${active === 'courses' ? 'active' : ''}`} onClick={() => nav('courses')} style={{ paddingLeft: '36px', fontSize: '0.82rem' }}>
-              Courses
-            </div>
-          </div>
-
-          <div className="nav-group-header">
-            <span>Build</span>
-          </div>
-
-          <div className="nav-group-body">
-            {[
-              ['weblinks', 'Web Links'],
-              ['booking', 'Booking / Your Services'],
-              ['subs', 'Subscriptions / Memberships / Subs'],
-              ['tickets', 'Events / Tickets'],
-              ['listings', 'Listings'],
-              ['createpoll', 'Create Poll'],
-              ['forms', 'Forms'],
-            ].map(([key, label]) => (
-              <div key={key} className={`nav-item ${active === key ? 'active' : ''}`} onClick={() => nav(key)}>
-                {label}
-              </div>
-            ))}
-          </div>
-
-          <div className="nav-group-header">
-            <span>Profile</span>
-          </div>
-
-          <div className="nav-group-body">
-            {[
-              ['mediaprofile', 'Media Profile'],
-              ['sociallinks', 'Social Links'],
-              ['video', 'Video'],
-              ['promo', 'Promo / Referrals / Affiliates'],
-              ['browsericon', 'Branding / Browser Icon'],
-            ].map(([key, label]) => (
-              <div key={key} className={`nav-item ${active === key ? 'active' : ''}`} onClick={() => nav(key)}>
-                {label}
-              </div>
-            ))}
-          </div>
-
-          <div className="nav-group-header">
-            <span>Finance</span>
-          </div>
-
-          <div className="nav-group-body">
-            {[
-              ['analytics', 'Analytics'],
-              ['salespayouts', 'Sales & Payouts'],
-              ['payoutsettings', 'Payout Settings'],
-            ].map(([key, label]) => (
-              <div key={key} className={`nav-item ${active === key ? 'active' : ''}`} onClick={() => nav(key)}>
-                {label}
-              </div>
-            ))}
-          </div>
-
-          <div className="nav-group-header">
-            <span>Trust & Community</span>
-          </div>
-
-          <div className="nav-group-body">
-            {[
-              ['gateway', 'Gateway Room'],
-              ['reviews', 'Reviews'],
-              ['scanner', 'Scanner'],
-              ['messages', 'My Messages'],
-              ['bannedblocked', 'Banned / Blocked'],
-              ['sparkfounder', 'Spark Founder'],
-            ].map(([key, label]) => (
-              <div key={key} className={`nav-item ${active === key ? 'active' : ''}`} onClick={() => nav(key)}>
-                {label}
-              </div>
-            ))}
-          </div>
-
-          <div className="nav-group-header">
-            <span>System</span>
-          </div>
-
-          <div className="nav-group-body">
-            <div className={`nav-item ${active === 'settings' ? 'active' : ''}`} onClick={() => nav('settings')}>
-              Settings
-            </div>
-          </div>
+          <div className="nav-item" onClick={() => nav('dashboard')}>Dashboard</div>
+          <div className="nav-item" onClick={() => nav('showcase')}>Showcase</div>
+          <div className="nav-item" onClick={sell}>My Store</div>
         </nav>
 
         <div className="sidebar-bottom">
-          <div className="user-card">
-            <div id="sidebar-avatar" className="user-avatar">U</div>
-            <div>
-              <div id="sidebar-name" className="user-name">Loading...</div>
-              <div id="sidebar-handle" className="user-handle">@username</div>
-            </div>
-          </div>
-
-          <div className="bottom-btns">
-            <button className="btn-golive">Go Live</button>
-          </div>
+          <button className="btn-golive" onClick={openGoLive}>
+            Go Live
+          </button>
         </div>
       </aside>
 
       <div className="main">
         <div className="topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              className="hamburger"
-              id="hamburger-btn"
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open menu"
-            >
-              ☰
-            </button>
-
-            <span className="topbar-title" id="page-title">
-              {active === 'dashboard' ? 'Dashboard' : active}
-            </span>
+            <button onClick={() => setSidebarOpen(true)}>☰</button>
+            <span>{active}</span>
           </div>
 
           <div className="topbar-right">
-            <button className="desktop-golive">
+            <button className="desktop-golive" onClick={openGoLive}>
               Go Live
             </button>
 
-            <div className="link-badge" id="dual-link-badge">
-              <span id="nav-profile-link">massed.io/username</span>
-            </div>
+            <button onClick={sell}>
+              Sell
+            </button>
 
-            <button className="btn-logout" onClick={logout}>
-              Log Out
+            <button onClick={() => setMenuOpen(true)}>
+              ⋯
             </button>
           </div>
         </div>
 
-        <div className="content">
-          {active === 'dashboard' ? (
-            <div id="screen-dashboard" className="screen active">
-              <div id="dashboard-welcome" className="welcome-wrap">
-                <div className="welcome-card">
-                  <div className="welcome-icon" style={{ background: 'transparent' }}>
-                    <img
-                      src="/safe.png"
-                      alt="Massed"
-                      style={{
-                        width: '72px',
-                        height: '72px',
-                        objectFit: 'contain',
-                        borderRadius: '16px',
-                      }}
-                    />
-                  </div>
-
-                  <h1 className="welcome-title">Welcome to MASSED</h1>
-
-                  <p className="welcome-sub">
-                    Built for those who overstand presence is power. Set up your profile,
-                    add your links, go live, and bring your public profile to life.
-                  </p>
-
-                  <button className="btn-start" onClick={() => nav('mediaprofile')}>
-                    Start Here →
-                  </button>
-                </div>
-              </div>
+        {menuOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              right: 16,
+              top: 70,
+              background: '#fff',
+              borderRadius: 12,
+              padding: 12,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+              zIndex: 2000,
+            }}
+          >
+            <div onClick={openGoLive} style={{ padding: 10, cursor: 'pointer' }}>
+              Go Live
             </div>
-          ) : (
-            <div className="screen active">
-              <div className="welcome-wrap">
-                <div className="welcome-card">
-                  <h1 className="welcome-title">
-                    {active.replace(/([a-z])([A-Z])/g, '$1 $2')}
-                  </h1>
 
-                  <p className="welcome-sub">
-                    No data yet. This section is ready to connect.
-                  </p>
-                </div>
-              </div>
+            <div onClick={sell} style={{ padding: 10, cursor: 'pointer' }}>
+              Sell
+            </div>
+
+            <div onClick={logout} style={{ padding: 10, cursor: 'pointer', color: '#dc2626' }}>
+              Log Out
+            </div>
+          </div>
+        )}
+
+        <div className="content">
+          {active === 'dashboard' && (
+            <div className="screen">
+              <h1>Welcome to Massed</h1>
+            </div>
+          )}
+
+          {active === 'mystore' && (
+            <div className="screen">
+              <h1>My Store</h1>
+              <p>Sell products, services, courses, and digital downloads here.</p>
+            </div>
+          )}
+
+          {active === 'createpoll' && (
+            <div className="screen">
+              <h1>Create Poll</h1>
+              <p>Build a live poll for your audience.</p>
+            </div>
+          )}
+
+          {active === 'livepreview' && (
+            <div className="screen">
+              <h1>Live Preview</h1>
+              <p>Your live room preview will appear here.</p>
+            </div>
+          )}
+
+          {!['dashboard', 'mystore', 'createpoll', 'livepreview'].includes(active) && (
+            <div className="screen">
+              <h1>{active}</h1>
+              <p>No data yet. This section is ready to connect.</p>
             </div>
           )}
         </div>
       </div>
+
+      {goLiveOpen && (
+        <div
+          onClick={() => setGoLiveOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '480px',
+              background: '#fff',
+              borderRadius: '22px',
+              padding: '26px',
+              boxShadow: '0 18px 60px rgba(0,0,0,0.22)',
+            }}
+          >
+            <h2 style={{ marginBottom: 6 }}>Go Live 🎙️</h2>
+            <p style={{ color: '#58564F', lineHeight: 1.5 }}>
+              Choose how you want to go live.
+            </p>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: '12px',
+                marginTop: '20px',
+              }}
+            >
+              {[
+                ['live', '🔴', 'Go Live', 'Connect with your audience without selling.'],
+                ['sell', '🛒', 'Go Live & Sell', 'Feature a product with a sale price and timer.'],
+                ['poll', '📊', 'Go Live with a Poll', 'Launch a live poll your audience votes on.'],
+              ].map(([mode, icon, title, desc]) => (
+                <button
+                  key={mode}
+                  onClick={() => setLiveMode(mode)}
+                  style={{
+                    border: liveMode === mode ? '2px solid #C07850' : '1px solid #E0DED7',
+                    background: liveMode === mode ? '#F5EDE6' : '#fff',
+                    borderRadius: '16px',
+                    padding: '18px 12px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: '26px', marginBottom: '8px' }}>{icon}</div>
+                  <div style={{ fontWeight: 800, marginBottom: '6px' }}>{title}</div>
+                  <div style={{ fontSize: '12px', color: '#58564F', lineHeight: 1.4 }}>
+                    {desc}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px',
+                marginTop: '24px',
+              }}
+            >
+              <button
+                onClick={() => setGoLiveOpen(false)}
+                style={{
+                  border: '1px solid #E0DED7',
+                  background: '#fff',
+                  borderRadius: '999px',
+                  padding: '11px 18px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={!liveMode}
+                onClick={continueGoLive}
+                style={{
+                  border: 'none',
+                  background: liveMode ? '#0a0a0a' : '#C8C6BE',
+                  color: '#fff',
+                  borderRadius: '999px',
+                  padding: '11px 18px',
+                  fontWeight: 800,
+                  cursor: liveMode ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Continue →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
